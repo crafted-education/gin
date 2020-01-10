@@ -4,12 +4,11 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/codegangsta/envy/lib"
-	"github.com/codegangsta/gin/lib"
+	envy "github.com/codegangsta/envy/lib"
+	gin "github.com/codegangsta/gin/lib"
 	shellwords "github.com/mattn/go-shellwords"
 	"gopkg.in/urfave/cli.v1"
 
-	"github.com/0xAX/notificator"
 	"log"
 	"os"
 	"os/signal"
@@ -18,6 +17,8 @@ import (
 	"strings"
 	"syscall"
 	"time"
+
+	"github.com/0xAX/notificator"
 )
 
 var (
@@ -62,11 +63,11 @@ func main() {
 			EnvVar: "GIN_BIN",
 			Usage:  "name of generated binary file",
 		},
-		cli.StringFlag{
+		cli.StringSliceFlag{
 			Name:   "path,t",
-			Value:  ".",
+			Value:  &cli.StringSlice{"."},
 			EnvVar: "GIN_PATH",
-			Usage:  "Path to watch files from",
+			Usage:  "Paths to watch files from",
 		},
 		cli.StringFlag{
 			Name:   "build,d",
@@ -170,9 +171,6 @@ func MainAction(c *cli.Context) {
 	}
 
 	buildPath := c.GlobalString("build")
-	if buildPath == "" {
-		buildPath = c.GlobalString("path")
-	}
 	builder := gin.NewBuilder(buildPath, c.GlobalString("bin"), c.GlobalBool("godep"), wd, buildArgs)
 	runner := gin.NewRunner(filepath.Join(wd, builder.Binary()), c.Args()...)
 	runner.SetWriter(os.Stdout)
@@ -203,7 +201,7 @@ func MainAction(c *cli.Context) {
 	build(builder, runner, logger)
 
 	// scan for changes
-	scanChanges(c.GlobalString("path"), c.GlobalStringSlice("excludeDir"), all, func(path string) {
+	scanChanges(c.GlobalStringSlice("path"), c.GlobalStringSlice("excludeDir"), all, func(path string) {
 		runner.Kill()
 		build(builder, runner, logger)
 	})
@@ -260,31 +258,33 @@ func build(builder gin.Builder, runner gin.Runner, logger *log.Logger) {
 
 type scanCallback func(path string)
 
-func scanChanges(watchPath string, excludeDirs []string, allFiles bool, cb scanCallback) {
+func scanChanges(watchPaths []string, excludeDirs []string, allFiles bool, cb scanCallback) {
 	for {
-		filepath.Walk(watchPath, func(path string, info os.FileInfo, err error) error {
-			if path == ".git" && info.IsDir() {
-				return filepath.SkipDir
-			}
-			for _, x := range excludeDirs {
-				if x == path {
+		for _, watchPath := range watchPaths {
+			filepath.Walk(watchPath, func(path string, info os.FileInfo, err error) error {
+				if path == ".git" && info.IsDir() {
 					return filepath.SkipDir
 				}
-			}
+				for _, x := range excludeDirs {
+					if x == path {
+						return filepath.SkipDir
+					}
+				}
 
-			// ignore hidden files
-			if filepath.Base(path)[0] == '.' {
+				// ignore hidden files
+				if filepath.Base(path)[0] == '.' {
+					return nil
+				}
+
+				if (allFiles || filepath.Ext(path) == ".go") && info.ModTime().After(startTime) {
+					cb(path)
+					startTime = time.Now()
+					return errors.New("done")
+				}
+
 				return nil
-			}
-
-			if (allFiles || filepath.Ext(path) == ".go") && info.ModTime().After(startTime) {
-				cb(path)
-				startTime = time.Now()
-				return errors.New("done")
-			}
-
-			return nil
-		})
+			})
+		}
 		time.Sleep(500 * time.Millisecond)
 	}
 }
