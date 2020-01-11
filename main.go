@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	envy "github.com/codegangsta/envy/lib"
-	gin "github.com/codegangsta/gin/lib"
+	gin "github.com/crafted-education/gin/lib"
 	shellwords "github.com/mattn/go-shellwords"
 	"gopkg.in/urfave/cli.v1"
 
