@@ -122,6 +122,11 @@ func main() {
 			EnvVar: "GIN_NOTIFICATIONS",
 			Usage:  "Enables desktop notifications",
 		},
+		cli.BoolFlag{
+			Name:   "delve",
+			EnvVar: "GIN_DELVE",
+			Usage:  "run the app with delve for debugging",
+		},
 	}
 	app.Commands = []cli.Command{
 		{
@@ -172,7 +177,7 @@ func MainAction(c *cli.Context) {
 
 	buildPath := c.GlobalString("build")
 	builder := gin.NewBuilder(buildPath, c.GlobalString("bin"), c.GlobalBool("godep"), wd, buildArgs)
-	runner := gin.NewRunner(filepath.Join(wd, builder.Binary()), c.Args()...)
+	runner := gin.NewRunner(wd, builder.Binary(), c.GlobalBool("delve"), c.Args()...)
 	runner.SetWriter(os.Stdout)
 	proxy := gin.NewProxy(builder, runner)
 

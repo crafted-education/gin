@@ -3,33 +3,33 @@ package gin_test
 import (
 	"bytes"
 	"os"
-	"path/filepath"
 	"runtime"
 	"testing"
 	"time"
 
-	"github.com/crafted-education/gin/lib"
+	gin "github.com/crafted-education/gin/lib"
 )
 
 func Test_NewRunner(t *testing.T) {
-	filename := "writing_output"
-	if runtime.GOOS == "windows" {
-		filename += ".bat"
-	}
-	bin := filepath.Join("test_fixtures", filename)
-
-	runner := gin.NewRunner(bin)
-
-	fi, _ := runner.Info()
-	expect(t, fi.Name(), filename)
-}
-
-func Test_Runner_Run(t *testing.T) {
-	bin := filepath.Join("test_fixtures", "writing_output")
+	bin := "writing_output"
 	if runtime.GOOS == "windows" {
 		bin += ".bat"
 	}
-	runner := gin.NewRunner(bin)
+	wd := "test_fixtures"
+
+	runner := gin.NewRunner(wd, bin, false)
+
+	fi, _ := runner.Info()
+	expect(t, fi.Name(), bin)
+}
+
+func Test_Runner_Run(t *testing.T) {
+	wd := "test_fixtures"
+	bin := "writing_output"
+	if runtime.GOOS == "windows" {
+		bin += ".bat"
+	}
+	runner := gin.NewRunner(wd, bin, false)
 
 	cmd, err := runner.Run()
 	expect(t, err, nil)
@@ -40,12 +40,13 @@ func Test_Runner_Run(t *testing.T) {
 // }
 
 func Test_Runner_Kill(t *testing.T) {
-	bin := filepath.Join("test_fixtures", "writing_output")
+	wd := "test_fixtures"
+	bin := "writing_output"
 	if runtime.GOOS == "windows" {
 		bin += ".bat"
 	}
 
-	runner := gin.NewRunner(bin)
+	runner := gin.NewRunner(wd, bin, false)
 
 	cmd1, err := runner.Run()
 	expect(t, err, nil)
@@ -72,12 +73,13 @@ func Test_Runner_SetWriter(t *testing.T) {
 	buff := bytes.NewBufferString("")
 	expect(t, buff.String(), "")
 
-	bin := filepath.Join("test_fixtures", "writing_output")
+	wd := "test_fixtures"
+	bin := "writing_output"
 	if runtime.GOOS == "windows" {
 		bin += ".bat"
 	}
 
-	runner := gin.NewRunner(bin)
+	runner := gin.NewRunner(wd, bin, false)
 	runner.SetWriter(buff)
 
 	cmd, err := runner.Run()

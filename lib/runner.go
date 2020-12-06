@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"runtime"
 	"time"
 )
@@ -25,7 +26,15 @@ type runner struct {
 	starttime time.Time
 }
 
-func NewRunner(bin string, args ...string) Runner {
+func NewRunner(wd string, bin string, runWithDelve bool, args ...string) Runner {
+
+	if runWithDelve {
+		args = []string{"debug", wd, "--listen=:40000", "--headless=true", "--api-version=2", "--log"}
+		bin = "dlv"
+	} else {
+		bin = filepath.Join(wd, bin)
+	}
+
 	return &runner{
 		bin:       bin,
 		args:      args,
