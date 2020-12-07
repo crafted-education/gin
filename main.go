@@ -13,7 +13,6 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"syscall"
 	"time"
@@ -147,13 +146,13 @@ func main() {
 }
 
 func MainAction(c *cli.Context) {
-	laddr := c.GlobalString("laddr")
-	port := c.GlobalInt("port")
+	// laddr := c.GlobalString("laddr")
+	// port := c.GlobalInt("port")
 	all := c.GlobalBool("all")
-	appPort := strconv.Itoa(c.GlobalInt("appPort"))
+	//appPort := strconv.Itoa(c.GlobalInt("appPort"))
 	immediate = c.GlobalBool("immediate")
-	keyFile := c.GlobalString("keyFile")
-	certFile := c.GlobalString("certFile")
+	// keyFile := c.GlobalString("keyFile")
+	// certFile := c.GlobalString("certFile")
 	logPrefix := c.GlobalString("logPrefix")
 	notifications = c.GlobalBool("notifications")
 
@@ -163,7 +162,7 @@ func MainAction(c *cli.Context) {
 	envy.Bootstrap()
 
 	// Set the PORT env
-	os.Setenv("PORT", appPort)
+	//os.Setenv("PORT", appPort)
 
 	wd, err := os.Getwd()
 	if err != nil {
@@ -179,26 +178,26 @@ func MainAction(c *cli.Context) {
 	builder := gin.NewBuilder(buildPath, c.GlobalString("bin"), c.GlobalBool("godep"), wd, buildArgs)
 	runner := gin.NewRunner(wd, builder.Binary(), c.GlobalBool("delve"), c.Args()...)
 	runner.SetWriter(os.Stdout)
-	proxy := gin.NewProxy(builder, runner)
+	// proxy := gin.NewProxy(builder, runner)
 
-	config := &gin.Config{
-		Laddr:    laddr,
-		Port:     port,
-		ProxyTo:  "http://localhost:" + appPort,
-		KeyFile:  keyFile,
-		CertFile: certFile,
-	}
+	// config := &gin.Config{
+	// 	Laddr:    laddr,
+	// 	Port:     port,
+	// 	ProxyTo:  "http://localhost:" + appPort,
+	// 	KeyFile:  keyFile,
+	// 	CertFile: certFile,
+	// }
 
-	err = proxy.Run(config)
-	if err != nil {
-		logger.Fatal(err)
-	}
+	// err = proxy.Run(config)
+	// if err != nil {
+	// 	logger.Fatal(err)
+	// }
 
-	if laddr != "" {
-		logger.Printf("Listening at %s:%d\n", laddr, port)
-	} else {
-		logger.Printf("Listening on port %d\n", port)
-	}
+	// if laddr != "" {
+	// 	logger.Printf("Listening at %s:%d\n", laddr, port)
+	// } else {
+	// 	logger.Printf("Listening on port %d\n", port)
+	// }
 
 	shutdown(runner)
 
