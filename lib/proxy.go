@@ -67,9 +67,16 @@ func (p *Proxy) Close() error {
 }
 
 func (p *Proxy) defaultHandler(res http.ResponseWriter, req *http.Request) {
+
 	errors := p.builder.Errors()
 	if len(errors) > 0 {
 		res.Write([]byte(errors))
+	} else if req.URL.Path == "/debugServer/start" && req.Method == "POST" {
+		fmt.Println("Starting debug server...")
+		p.runner.StartDebugServer()
+	} else if req.URL.Path == "/debugServer/stop" && req.Method == "POST" {
+		fmt.Println("Stopping debug server...")
+		p.runner.StopDebugServer()
 	} else {
 		p.runner.Run()
 		if strings.ToLower(req.Header.Get("Upgrade")) == "websocket" || strings.ToLower(req.Header.Get("Accept")) == "text/event-stream" {

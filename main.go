@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"fmt"
+	"strconv"
 
 	envy "github.com/codegangsta/envy/lib"
 	gin "github.com/crafted-education/gin/lib"
@@ -63,9 +64,8 @@ func main() {
 			Usage:  "name of generated binary file",
 		},
 		cli.StringSliceFlag{
-			Name:   "path,t",
-			Value:  &cli.StringSlice{"."},
-			EnvVar: "GIN_PATH",
+			Name:   "watch,w",
+			EnvVar: "GIN_WATCH",
 			Usage:  "Paths to watch files from",
 		},
 		cli.StringFlag{
@@ -89,11 +89,6 @@ func main() {
 			Name:   "all",
 			EnvVar: "GIN_ALL",
 			Usage:  "reloads whenever any file changes, as opposed to reloading only on .go file change",
-		},
-		cli.BoolFlag{
-			Name:   "godep,g",
-			EnvVar: "GIN_GODEP",
-			Usage:  "use godep when building",
 		},
 		cli.StringFlag{
 			Name:   "buildArgs",
@@ -121,10 +116,11 @@ func main() {
 			EnvVar: "GIN_NOTIFICATIONS",
 			Usage:  "Enables desktop notifications",
 		},
-		cli.BoolFlag{
-			Name:   "delve",
-			EnvVar: "GIN_DELVE",
-			Usage:  "run the app with delve for debugging",
+		cli.IntFlag{
+			Name:   "debugServerPort",
+			EnvVar: "GIN_DEBUG_SERVER_PORT",
+			Usage:  "The port the debug server should listen on",
+			Value:  40000,
 		},
 	}
 	app.Commands = []cli.Command{
@@ -146,13 +142,13 @@ func main() {
 }
 
 func MainAction(c *cli.Context) {
-	// laddr := c.GlobalString("laddr")
-	// port := c.GlobalInt("port")
+	laddr := c.GlobalString("laddr")
+	port := c.GlobalInt("port")
 	all := c.GlobalBool("all")
-	//appPort := strconv.Itoa(c.GlobalInt("appPort"))
+	appPort := strconv.Itoa(c.GlobalInt("appPort"))
 	immediate = c.GlobalBool("immediate")
-	// keyFile := c.GlobalString("keyFile")
-	// certFile := c.GlobalString("certFile")
+	keyFile := c.GlobalString("keyFile")
+	certFile := c.GlobalString("certFile")
 	logPrefix := c.GlobalString("logPrefix")
 	notifications = c.GlobalBool("notifications")
 
@@ -162,7 +158,7 @@ func MainAction(c *cli.Context) {
 	envy.Bootstrap()
 
 	// Set the PORT env
-	//os.Setenv("PORT", appPort)
+	os.Setenv("PORT", appPort)
 
 	wd, err := os.Getwd()
 	if err != nil {
@@ -175,29 +171,33 @@ func MainAction(c *cli.Context) {
 	}
 
 	buildPath := c.GlobalString("build")
-	builder := gin.NewBuilder(buildPath, c.GlobalString("bin"), c.GlobalBool("godep"), wd, buildArgs)
-	runner := gin.NewRunner(wd, builder.Binary(), c.GlobalBool("delve"), c.Args()...)
+	if buildPath == "" {
+		buildPath = c.GlobalString("watch")
+	}
+
+	builder := gin.NewBuilder(buildPath, c.GlobalString("bin"), wd, buildArgs)
+	runner := gin.NewRunner(wd, builder.Binary(), c.GlobalInt("debugServerPort"))
 	runner.SetWriter(os.Stdout)
-	// proxy := gin.NewProxy(builder, runner)
+	proxy := gin.NewProxy(builder, runner)
 
-	// config := &gin.Config{
-	// 	Laddr:    laddr,
-	// 	Port:     port,
-	// 	ProxyTo:  "http://localhost:" + appPort,
-	// 	KeyFile:  keyFile,
-	// 	CertFile: certFile,
-	// }
+	config := &gin.Config{
+		Laddr:    laddr,
+		Port:     port,
+		ProxyTo:  "http://localhost:" + appPort,
+		KeyFile:  keyFile,
+		CertFile: certFile,
+	}
 
-	// err = proxy.Run(config)
-	// if err != nil {
-	// 	logger.Fatal(err)
-	// }
+	err = proxy.Run(config)
+	if err != nil {
+		logger.Fatal(err)
+	}
 
-	// if laddr != "" {
-	// 	logger.Printf("Listening at %s:%d\n", laddr, port)
-	// } else {
-	// 	logger.Printf("Listening on port %d\n", port)
-	// }
+	if laddr != "" {
+		logger.Printf("Listening at %s:%d\n", laddr, port)
+	} else {
+		logger.Printf("Listening on port %d\n", port)
+	}
 
 	shutdown(runner)
 
@@ -205,7 +205,7 @@ func MainAction(c *cli.Context) {
 	build(builder, runner, logger)
 
 	// scan for changes
-	scanChanges(c.GlobalStringSlice("path"), c.GlobalStringSlice("excludeDir"), all, func(path string) {
+	scanChanges(c.GlobalStringSlice("watch"), c.GlobalStringSlice("excludeDir"), all, func(path string) {
 		runner.Kill()
 		build(builder, runner, logger)
 	})
