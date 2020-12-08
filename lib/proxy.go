@@ -73,10 +73,22 @@ func (p *Proxy) defaultHandler(res http.ResponseWriter, req *http.Request) {
 		res.Write([]byte(errors))
 	} else if req.URL.Path == "/debugServer/start" && req.Method == "POST" {
 		fmt.Println("Starting debug server...")
-		p.runner.StartDebugServer()
+		_, err := p.runner.StartDebugServer()
+		if err != nil {
+			fmt.Printf("Error starting debug server: %+v \n", err)
+		} else {
+			fmt.Println("Debug server started.")
+		}
+
 	} else if req.URL.Path == "/debugServer/stop" && req.Method == "POST" {
 		fmt.Println("Stopping debug server...")
-		p.runner.StopDebugServer()
+		err := p.runner.StopDebugServer()
+		if err != nil {
+			fmt.Printf("Error stopping debug server: %+v \n", err)
+		} else {
+			fmt.Println("Debug server stopped.")
+		}
+
 	} else {
 		p.runner.Run()
 		if strings.ToLower(req.Header.Get("Upgrade")) == "websocket" || strings.ToLower(req.Header.Get("Accept")) == "text/event-stream" {
