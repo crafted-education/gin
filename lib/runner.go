@@ -176,7 +176,7 @@ func (r *runner) runDebugServer() error {
 		return errors.New("app pid is zero")
 	}
 
-	r.debugServerCommand = exec.Command("/home/tim/go/bin/dlv", "attach", fmt.Sprint(appPid), r.wd, "--listen=:"+fmt.Sprint(r.debugServerPort), "--headless=true", "--continue", "--accept-multiclient", "--only-same-user=false", "--api-version=2", "--log")
+	r.debugServerCommand = exec.Command("dlv", "attach", fmt.Sprint(appPid), r.wd, "--listen=:"+fmt.Sprint(r.debugServerPort), "--headless=true", "--continue", "--accept-multiclient", "--only-same-user=false", "--api-version=2", "--log")
 	stdout, err := r.debugServerCommand.StdoutPipe()
 	if err != nil {
 		return err
