@@ -142,7 +142,13 @@ func (r *runner) Exited() bool {
 }
 
 func (r *runner) runBin() error {
-	r.appCommand = exec.Command(filepath.Join(r.wd, r.bin))
+	commandString := filepath.Join(r.wd, r.bin)
+	log.Print(fmt.Sprintf("Starting app process. r.wd: %v, r.bin: %v, commandString: %v ", r.wd, r.bin, commandString))
+
+	r.appCommand = exec.Command(commandString)
+
+	r.appCommand.Dir = r.wd
+
 	stdout, err := r.appCommand.StdoutPipe()
 	if err != nil {
 		return err
@@ -176,7 +182,12 @@ func (r *runner) runDebugServer() error {
 		return errors.New("app pid is zero")
 	}
 
+	log.Print(fmt.Sprintf("Starting delve process. r.wd: %v, appPid: %v, r.debugServerPort: %v ", r.wd, appPid, r.debugServerPort))
+
 	r.debugServerCommand = exec.Command("dlv", "attach", fmt.Sprint(appPid), r.wd, "--listen=:"+fmt.Sprint(r.debugServerPort), "--headless=true", "--continue", "--accept-multiclient", "--only-same-user=false", "--api-version=2", "--log")
+
+	r.debugServerCommand.Dir = r.wd
+
 	stdout, err := r.debugServerCommand.StdoutPipe()
 	if err != nil {
 		return err
